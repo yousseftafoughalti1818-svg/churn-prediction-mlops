@@ -68,32 +68,53 @@ churn-prediction-mlops/
 
 ## 📊 Results
 
-> Run `make train`: the table below is generated automatically in
-> [`reports/metrics.md`](reports/metrics.md) and the figures in `reports/figures/`.
-> Copy your own numbers here after training.
+Trained on the full dataset (7,043 customers, 26.5% churners), evaluated on a held-out 20% test
+set (1,409 customers). Full report: [`reports/metrics.md`](reports/metrics.md).
 
-| Model | CV ROC-AUC | Test ROC-AUC | Test PR-AUC |
+| Model | CV ROC-AUC (5 folds) | Test ROC-AUC | Test PR-AUC |
 |---|---|---|---|
-| Logistic Regression | _to fill_ | _to fill_ | _to fill_ |
-| Random Forest | _to fill_ | _to fill_ | _to fill_ |
-| XGBoost | _to fill_ | _to fill_ | _to fill_ |
+| Logistic Regression | 0.847 ± 0.011 | **0.845** | 0.651 |
+| **Random Forest** (selected) | **0.848 ± 0.010** | 0.844 | **0.657** |
+| XGBoost | 0.841 ± 0.011 | 0.839 | 0.646 |
 
-| | Precision | Recall | F1 |
+Random Forest is selected on cross-validation; decision threshold tuned to **0.58** (max F1 on
+out-of-fold predictions).
+
+| Test set | Precision | Recall | F1 |
 |---|---|---|---|
-| Best model | _to fill_ | _to fill_ | _to fill_ |
-| Business rule (month-to-month) | _to fill_ | _to fill_ | _to fill_ |
+| **Random Forest** | **0.552** | 0.727 | **0.627** |
+| Business rule (flag every month-to-month customer) | 0.426 | 0.880 | 0.574 |
+
+- **+9.4% F1** compared with the business rule, with **+30% precision** (0.55 vs 0.43): far fewer
+  retention offers sent to customers who would have stayed.
+- **Lift ×2.9 in the top 10%** riskiest customers: contacting the 10% highest-scored customers
+  reaches almost 3 times more churners than a random selection.
+- The model detects **73% of churners** (272 of 374 in the test set).
 
 <p align="center">
   <img src="reports/figures/roc_curves.png" width="45%">
-  <img src="reports/figures/shap_summary.png" width="45%">
+  <img src="reports/figures/confusion_matrix.png" width="40%">
 </p>
 
-**Expected main churn drivers** (check them on your SHAP plot): contract type, tenure, internet service type,
-payment method and monthly charges.
+### What drives churn? (SHAP)
 
-**Business recommendations**: target new month-to-month customers with an offer to switch to a
-1-year contract, promote automatic payment, and bundle tech support / online security with
-fiber subscriptions.
+<p align="center">
+  <img src="reports/figures/shap_summary.png" width="60%">
+</p>
+
+1. **Month-to-month contract** is by far the strongest driver; two-year contracts strongly reduce risk.
+2. **Short tenure**: customers in their first 6 months are much more likely to leave.
+3. **No online security / no tech support** increase churn risk.
+4. **Fiber optic** internet and **electronic check** payment are associated with higher churn.
+
+**Business recommendations**: offer new month-to-month customers an incentive to switch to a 1- or
+2-year contract, bundle online security and tech support with fiber subscriptions, and promote
+automatic payment methods.
+
+**Limits and next steps**: `is_month_to_month` and `Contract_Month-to-month` carry the same
+information (redundant feature to remove); the three models perform almost identically, which
+suggests the signal is mostly linear; next steps are probability calibration, cost-based threshold
+selection and monitoring of data drift.
 
 ## 🚀 Quick start
 
